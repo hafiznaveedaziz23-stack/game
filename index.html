@@ -3,80 +3,108 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>RUNNING RUSH 3D - BALI</title>
-<link rel="manifest" href="manifest.json">
+<title>SUBWAY RUSH - BALI</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#00c6ff;font-family:Arial;overflow:hidden}
-#loading{position:fixed;inset:0;background:linear-gradient(#00c6ff,#0072ff);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:99}
-#barWrap{width:80%;height:20px;background:rgba(255,255,255,.4);border-radius:20px;margin-top:15px;overflow:hidden}
-#bar{height:100%;width:0%;background:#ffde59}
-#menu{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(#00c6ff,#0072ff);color:#fff;z-index:90}
-.btn{background:#ffde59;border:none;padding:15px 30px;font-size:19px;font-weight:900;border-radius:30px;margin:8px;min-width:230px}
-#game{position:fixed;inset:0;display:none;background:#87ceeb}
-canvas{width:100%;height:100%;display:block}
-#hud{position:fixed;top:10px;left:10px;right:10px;display:none;justify-content:space-between;color:#fff;font-weight:bold;z-index:20}
-#hud div{background:rgba(0,0,0,.5);padding:8px 14px;border-radius:20px}
+body{font-family:Arial;overflow:hidden;background:#000;touch-action:none;user-select:none}
+#cv{width:100vw;height:100vh;display:block}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;z-index:10}
+#menu{background:linear-gradient(#ff9a00,#ff2e63);padding:20px}
+#menu h1{font-size:44px;line-height:0.9;text-shadow:0 4px 0 #00000033}
+#over{background:rgba(0,0,0,.82);display:none}
+.btn{background:#ffde59;border:none;padding:15px 25px;font-size:19px;font-weight:900;border-radius:30px;margin:7px;min-width:260px;box-shadow:0 5px 0 #c9a900}
+.btn2{background:#fff;color:#222}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:none;justify-content:space-between;z-index:20}
+#hud div{background:rgba(0,0,0,.6);color:#fff;padding:8px 14px;border-radius:20px;font-weight:800}
+#ctrl{position:fixed;bottom:14px;left:0;right:0;display:none;justify-content:center;gap:10px;z-index:20}
+#ctrl button{width:62px;height:62px;border-radius:50%;border:none;font-size:24px;background:#fff;box-shadow:0 3px 0 #999}
 </style>
 </head>
 <body>
-<div id="loading"><div style="font-size:70px">🏝️</div><h1>RUNNING RUSH 3D</h1><p>BALI • SWIPE TO RUN</p><div id="barWrap"><div id="bar"></div></div><div id="loadText" style="margin-top:10px;font-weight:bold">Loading... 0%</div></div>
-<div id="menu"><div style="font-size:70px">🏝️</div><h1 style="font-size:36px;text-align:center">RUNNING<br>RUSH 3D</h1><p style="margin:10px">BALI ADVENTURE - 100% OFFLINE</p><button class="btn" onclick="startGame()">▶ PLAY NOW</button><button class="btn" style="background:#fff" onclick="alert('Swipe Left/Right = Move, Swipe Up = Jump')">❓ HOW TO PLAY</button></div>
-<div id="game"><canvas id="cv"></canvas></div>
-<div id="hud"><div>Score: <span id="score">0</span></div><div>🪙 <span id="coins">0</span></div></div>
-<script>
-// 100% OFFLINE GAME - KOI CDN NAHI, IS LIYE 0% PAR NAHI ATKEGA
-let bar=document.getElementById('bar'),txt=document.getElementById('loadText'),p=0;
-let timer=setInterval(()=>{
-  p+=10;
-  if(p>100) p=100;
-  bar.style.width=p+'%'; txt.textContent='Loading... '+p+'%';
-  if(p>=100){ clearInterval(timer); document.getElementById('loading').style.display='none'; document.getElementById('menu').style.display='flex'; }
-},100);
+<div id="menu" class="screen">
+<div style="font-size:65px">🚆🏝️</div>
+<h1>SUBWAY<br>RUSH<br><span style="font-size:24px;background:#fff;color:#ff2e63;padding:2px 12px;border-radius:20px">BALI</span></h1>
+<p style="margin:12px">Train se bacho • Coins lo • Roll karo</p>
+<button class="btn" onclick="start()">▶ PRESS TO PLAY</button>
+<button class="btn btn2" onclick="alert('◀ ▶ = Lane Badlo\n⬆ = Jump\n⬇ = Roll\nTrain se bacho!')">❓ HOW TO PLAY</button>
+<p>Best: <b id="best">0</b></p>
+</div>
 
+<canvas id="cv"></canvas>
+<div id="hud"><div>Score <span id="sc">0</span></div><div>🪙 <span id="cn">0</span></div><div>⭐ <span id="mult">x1</span></div></div>
+<div id="ctrl">
+<button onclick="move(-1)">◀</button>
+<button onclick="jump()" style="background:#ffde59">⬆</button>
+<button onclick="roll()">⬇</button>
+<button onclick="move(1)">▶</button>
+</div>
+
+<div id="over" class="screen">
+<h1 style="font-size:40px">💥 CRASH!</h1>
+<p style="font-size:22px;margin:10px">Score: <b id="fsc">0</b> • Coins: <b id="fcn">0</b></p>
+<button class="btn" onclick="start()">🔄 PLAY AGAIN</button>
+<button class="btn btn2" onclick="location.reload()">🏠 HOME</button>
+</div>
+
+<script>
 let cv=document.getElementById('cv'),ctx=cv.getContext('2d');
-let playing=false,score=0,coinCount=0,playerY=0,vy=0,jumping=false,lane=1,obs=[],coins=[],frame=0;
-function resize(){cv.width=innerWidth;cv.height=innerHeight;} addEventListener('resize',resize); resize();
-function startGame(){
-  score=0;coinCount=0;lane=1;obs=[];coins=[];playing=true;
-  document.getElementById('menu').style.display='none';
-  document.getElementById('game').style.display='block';
-  document.getElementById('hud').style.display='flex';
-  loop();
-}
-function spawn(){
-  if(Math.random()<0.6) obs.push({x:cv.width,lane:Math.floor(Math.random()*3),w:50,h:50});
-  else coins.push({x:cv.width,lane:Math.floor(Math.random()*3)});
-}
+let W,H,playing=false,score=0,coins=0,lane=1,px=0,py=0,vy=0,jumpV=false,rolling=false,rollT=0,objs=[],coinArr=[],frame=0,speed=7,best=localStorage.getItem('baliBest')||0;
+document.getElementById('best').textContent=best;
+function rs(){W=innerWidth;H=innerHeight;cv.width=W;cv.height=H;px=W/2} addEventListener('resize',rs); rs();
+function start(){score=0;coins=0;lane=1;objs=[];coinArr=[];speed=7;playing=true;document.getElementById('menu').style.display='none';document.getElementById('over').style.display='none';document.getElementById('hud').style.display='flex';document.getElementById('ctrl').style.display='flex';requestAnimationFrame(loop)}
+function move(d){if(!playing)return;lane=Math.max(0,Math.min(2,lane+d))}
+function jump(){if(!playing||jumpV)return;jumpV=true;vy=-20}
+function roll(){if(!playing)return;rolling=true;rollT=28}
+function end(){playing=false;if(score>best){best=Math.floor(score);localStorage.setItem('baliBest',best)}document.getElementById('fsc').textContent=Math.floor(score);document.getElementById('fcn').textContent=coins;document.getElementById('over').style.display='flex'}
 function loop(){
-  if(!playing) return;
-  requestAnimationFrame(loop);
-  frame++; if(frame%40===0) spawn();
-  ctx.fillStyle='#87ceeb'; ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.fillStyle='#2ecc71'; ctx.fillRect(0,cv.height-100,cv.width,100);
-  ctx.fillStyle='#444'; ctx.fillRect(0,cv.height-120,cv.width,20);
-  let lanesX=[cv.width*0.25,cv.width*0.5,cv.width*0.75];
-  let px=lanesX[lane];
-  if(jumping){ playerY+=vy; vy+=1.2; if(playerY>=0){playerY=0;jumping=false;} }
-  // player
-  ctx.fillStyle='#ff4757'; ctx.fillRect(px-20,cv.height-140+playerY,40,50);
-  ctx.fillStyle='#ffd8a8'; ctx.fillRect(px-15,cv.height-170+playerY,30,30);
-  // obstacles
-  for(let i=obs.length-1;i>=0;i--){ let o=obs[i]; o.x-=7; ctx.fillStyle='#2f3542'; ctx.fillRect(o.x,cv.height-140,50,50);
-    if(Math.abs(o.x-px)<35 && playerY>-40){ alert('GAME OVER! Score: '+Math.floor(score)); playing=false; document.getElementById('game').style.display='none'; document.getElementById('hud').style.display='none'; document.getElementById('menu').style.display='flex'; return; }
-    if(o.x<-60){obs.splice(i,1); score+=10;}
-  }
-  for(let i=coins.length-1;i>=0;i--){ let c=coins[i]; c.x-=7; ctx.fillStyle='#ffde59'; ctx.beginPath(); ctx.arc(c.x,cv.height-110,15,0,7); ctx.fill();
-    if(Math.abs(c.x-px)<30){coinCount++; score+=50; coins.splice(i,1);}
-    if(c.x<-30) coins.splice(i,1);
-  }
-  score+=0.2;
-  document.getElementById('score').textContent=Math.floor(score);
-  document.getElementById('coins').textContent=coinCount;
+ if(!playing)return;requestAnimationFrame(loop);frame++;speed+=0.004;score+=0.35;
+ if(frame%40===0){
+   let r=Math.random();
+   if(r<0.45) objs.push({type:'train',lane:Math.floor(Math.random()*3),z:1});
+   else if(r<0.75) objs.push({type:'bar',lane:Math.floor(Math.random()*3),z:1});
+   else coinArr.push({lane:Math.floor(Math.random()*3),z:1});
+ }
+ let grd=ctx.createLinearGradient(0,0,0,H);grd.addColorStop(0,'#ff9a00');grd.addColorStop(0.55,'#ffb347');grd.addColorStop(0.55,'#c98a2d');grd.addColorStop(1,'#8a5a1a');
+ ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#2d8a2d';for(let i=0;i<6;i++){let x=(i*220-frame*2)%(W+200)-100;ctx.fillRect(x,80,10,220);ctx.beginPath();ctx.arc(x+5,75,35,0,7);ctx.fill();}
+ let lanes=[W*0.22,W*0.5,W*0.78];
+ let target=lanes[lane];px+=(target-px)*0.18;
+ for(let l of lanes){ctx.strokeStyle='#666';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(l,H);ctx.lineTo(l,H*0.35);ctx.stroke();ctx.strokeStyle='#999';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(l,H);ctx.lineTo(l,H*0.35);ctx.stroke();}
+ if(jumpV){py+=vy;vy+=1.2;if(py>=0){py=0;jumpV=false}}
+ if(rolling){rollT--;if(rollT<=0)rolling=false}
+ let pY=H-180+py;let pX=px;let bob=Math.sin(frame*0.35)*4;
+ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(pX,pY-62+bob,17,0,7);ctx.fill();
+ ctx.fillStyle='#e33';ctx.fillRect(pX-17,pY-78+bob,34,10);
+ ctx.fillStyle='#2aa';ctx.fillRect(pX-14,pY-45+bob,28,22);
+ ctx.fillStyle='#222';ctx.fillRect(pX-12,pY-45+bob,24,10);
+ if(rolling){ctx.fillStyle='#222';ctx.fillRect(pX-22,pY-18,44,18)}
+ else{ctx.fillStyle='#36f';ctx.fillRect(pX-13,pY-23+bob,11,24);ctx.fillRect(pX+2,pY-23-bob,11,24)}
+ for(let i=objs.length-1;i>=0;i--){let o=objs[i];o.z+=0.025*speed/7;let y=H*0.35+(H*0.65)*o.z;let s=0.2+o.z*1.1;
+   let ox2=W/2+(lanes[o.lane]-W/2)*(0.3+o.z);
+   if(o.type==='train'){
+     ctx.fillStyle='#d32f2f';ctx.fillRect(ox2-55*s,y-90*s,110*s,90*s);
+     ctx.fillStyle='#2196f3';ctx.fillRect(ox2-55*s,y-90*s,110*s,28*s);
+     ctx.fillStyle='#fff';ctx.fillRect(ox2-40*s,y-82*s,28*s,18*s);ctx.fillRect(ox2+12*s,y-82*s,28*s,18*s);
+     ctx.fillStyle='#ffeb3b';ctx.beginPath();ctx.arc(ox2,y-55*s,6*s,0,7);ctx.fill();
+     if(o.z>0.92&&o.z<1.08&&o.lane===lane&&!jumpV){end();return}
+   } else {
+     ctx.fillStyle='#fff';ctx.fillRect(ox2-45*s,y-28*s,90*s,22*s);
+     ctx.fillStyle='#e33';ctx.fillRect(ox2-45*s,y-28*s,18*s,22*s);ctx.fillRect(ox2-9*s,y-28*s,18*s,22*s);ctx.fillRect(ox2+27*s,y-28*s,18*s,22*s);
+     if(o.z>0.92&&o.z<1.08&&o.lane===lane&&!jumpV&&!rolling){end();return}
+   }
+   if(o.z>1.2){objs.splice(i,1);score+=15}
+ }
+ for(let i=coinArr.length-1;i>=0;i--){let c=coinArr[i];c.z+=0.025*speed/7;let y=H*0.35+(H*0.65)*c.z;let s=0.2+c.z*1.1;let cx=W/2+(lanes[c.lane]-W/2)*(0.3+c.z);
+   ctx.fillStyle='#ffde59';ctx.beginPath();ctx.arc(cx,y-40*s,14*s,0,7);ctx.fill();ctx.fillStyle='#ff9800';ctx.fillRect(cx-3*s,y-48*s,6*s,16*s);
+   if(c.z>0.92&&c.z<1.08&&c.lane===lane){coins++;score+=30;coinArr.splice(i,1)}
+   if(c.z>1.2)coinArr.splice(i,1)
+ }
+ document.getElementById('sc').textContent=Math.floor(score);
+ document.getElementById('cn').textContent=coins;
 }
-let sx=0,sy=0;
-document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
-document.addEventListener('touchend',e=>{if(!playing)return;let dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>Math.abs(dy)){if(dx>25&&lane<2)lane++;if(dx<-25&&lane>0)lane--;}else if(dy<-25&&!jumping){jumping=true;vy=-18;}}, {passive:true});
+let sx=0,sy=0;addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{let dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>Math.abs(dy)){if(dx>25)move(1);else if(dx<-25)move(-1)}else{if(dy<-25)jump();else if(dy>25)roll()}},{passive:true});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1);if(e.key==='ArrowUp')jump();if(e.key==='ArrowDown')roll()});
 </script>
 </body>
 </html>
