@@ -1,47 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>RUNNING RUSH 3D - BALI</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#00c6ff">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{overflow:hidden;background:#000;font-family:Arial,sans-serif;touch-action:none}
-#gameCanvas{position:fixed;inset:0;width:100%;height:100%;display:block}
-#loading{position:fixed;inset:0;background:linear-gradient(180deg,#00c6ff,#0072ff);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;color:#fff;text-align:center;padding:20px}
-#loading h1{font-size:32px}
-#barWrap{width:80%;max-width:320px;height:18px;background:rgba(255,255,255,.3);border-radius:20px;margin-top:18px;overflow:hidden}
-#bar{height:100%;width:0%;background:#ffde59;border-radius:20px}
-#hud{position:fixed;top:12px;left:12px;right:12px;display:none;justify-content:space-between;z-index:10;color:#fff;font-weight:bold}
-#hud div{background:rgba(0,0,0,.45);padding:8px 14px;border-radius:20px}
-#menu{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:linear-gradient(180deg,rgba(0,198,255,.9),rgba(0,114,255,.9));color:#fff;text-align:center;padding:20px}
-.btn{background:#ffde59;color:#000;border:none;padding:14px 32px;font-size:18px;font-weight:900;border-radius:30px;margin:6px;min-width:220px}
-.btn2{background:#fff}
-#gameOver{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;background:rgba(0,0,0,.75);color:#fff;text-align:center}
-#hint{position:fixed;bottom:18px;left:0;right:0;text-align:center;color:#fff;z-index:10;display:none}
+body{background:#00c6ff;font-family:Arial;overflow:hidden}
+#loading{position:fixed;inset:0;background:linear-gradient(#00c6ff,#0072ff);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:99}
+#barWrap{width:80%;height:20px;background:rgba(255,255,255,.4);border-radius:20px;margin-top:15px;overflow:hidden}
+#bar{height:100%;width:0%;background:#ffde59}
+#menu{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(#00c6ff,#0072ff);color:#fff;z-index:90}
+.btn{background:#ffde59;border:none;padding:15px 30px;font-size:19px;font-weight:900;border-radius:30px;margin:8px;min-width:230px}
+#game{position:fixed;inset:0;display:none;background:#87ceeb}
+canvas{width:100%;height:100%;display:block}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:none;justify-content:space-between;color:#fff;font-weight:bold;z-index:20}
+#hud div{background:rgba(0,0,0,.5);padding:8px 14px;border-radius:20px}
 </style>
 </head>
 <body>
-<div id="loading"><div style="font-size:60px">🏝️</div><h1>RUNNING RUSH 3D</h1><p>BALI • SWIPE TO RUN</p><div id="barWrap"><div id="bar"></div></div><div id="loadText">Loading... 0%</div></div>
-<canvas id="gameCanvas"></canvas>
-<div id="hud"><div>Score: <span id="score">0</span></div><div>🪙 <span id="coins">0</span> ❤️ <span id="lives">3</span></div></div>
-<div id="menu"><div style="font-size:60px">🏝️</div><h1>RUNNING<br>RUSH 3D</h1><p>BALI ADVENTURE • OFFLINE READY</p><button class="btn" onclick="startGame()">▶ PLAY NOW</button><button class="btn btn2" onclick="alert('Swipe Left/Right = Move, Swipe Up = Jump, Swipe Down = Slide')">❓ HOW TO PLAY</button></div>
-<div id="gameOver"><h2>GAME OVER!</h2><div id="scoreBig">Score: 0</div><br><button class="btn" onclick="startGame()">🔄 PLAY AGAIN</button><button class="btn btn2" onclick="showMenu()">🏠 MENU</button></div>
-<div id="hint">⬅️ Swipe • ⬆️ Jump • ⬇️ Slide</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div id="loading"><div style="font-size:70px">🏝️</div><h1>RUNNING RUSH 3D</h1><p>BALI • SWIPE TO RUN</p><div id="barWrap"><div id="bar"></div></div><div id="loadText" style="margin-top:10px;font-weight:bold">Loading... 0%</div></div>
+<div id="menu"><div style="font-size:70px">🏝️</div><h1 style="font-size:36px;text-align:center">RUNNING<br>RUSH 3D</h1><p style="margin:10px">BALI ADVENTURE - 100% OFFLINE</p><button class="btn" onclick="startGame()">▶ PLAY NOW</button><button class="btn" style="background:#fff" onclick="alert('Swipe Left/Right = Move, Swipe Up = Jump')">❓ HOW TO PLAY</button></div>
+<div id="game"><canvas id="cv"></canvas></div>
+<div id="hud"><div>Score: <span id="score">0</span></div><div>🪙 <span id="coins">0</span></div></div>
 <script>
-let scene,camera,renderer,player,clock,lanes=[-2.2,0,2.2],lane=1,isJumping=false,vy=0,obstacles=[],coinsArr=[],speed=0.22,score=0,coinCount=0,lives=3,playing=false;
-let bar=document.getElementById('bar'),loadText=document.getElementById('loadText'),p=0;
-let t=setInterval(()=>{p+=Math.floor(Math.random()*18)+8;if(p>=100){p=100;clearInterval(t);setTimeout(finish,300);}bar.style.width=p+'%';loadText.textContent='Loading... '+p+'%';},120);
-function finish(){document.getElementById('loading').style.display='none';document.getElementById('menu').style.display='flex';init3D();}
-function showMenu(){document.getElementById('gameOver').style.display='none';document.getElementById('menu').style.display='flex';document.getElementById('hud').style.display='none';document.getElementById('hint').style.display='none';playing=false;}
-function init3D(){scene=new THREE.Scene();scene.background=new THREE.Color(0x87ceeb);scene.fog=new THREE.Fog(0x87ceeb,18,55);camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,100);camera.position.set(0,4.2,7.5);renderer=new THREE.WebGLRenderer({canvas:document.getElementById('gameCanvas'),antialias:true});renderer.setSize(innerWidth,innerHeight);scene.add(new THREE.AmbientLight(0xffffff,0.7));let sun=new THREE.DirectionalLight(0xffffff,1);sun.position.set(5,10,5);scene.add(sun);let road=new THREE.Mesh(new THREE.BoxGeometry(8,0.2,120),new THREE.MeshLambertMaterial({color:0x444444}));road.position.set(0,-0.1,-40);scene.add(road);let left=new THREE.Mesh(new THREE.BoxGeometry(20,0.1,120),new THREE.MeshLambertMaterial({color:0x2ecc71}));left.position.set(-14,-0.15,-40);scene.add(left);let right=left.clone();right.position.x=14;right.material=new THREE.MeshLambertMaterial({color:0xf1c40f});scene.add(right);player=new THREE.Group();let body=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.1,0.5),new THREE.MeshLambertMaterial({color:0xff4757}));body.position.y=0.9;player.add(body);let head=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6),new THREE.MeshLambertMaterial({color:0xffd8a8}));head.position.y=1.75;player.add(head);player.position.set(0,0,0);scene.add(player);clock=new THREE.Clock();animate();let sx=0,sy=0;document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});document.addEventListener('touchend',e=>{if(!playing)return;let dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>Math.abs(dy)){if(dx>30&&lane<2)lane++;if(dx<-30&&lane>0)lane--;}else{if(dy<-30&&!isJumping){isJumping=true;vy=0.22;}}},{passive:true});}
-function spawn(){if(Math.random()<0.6){let l=Math.floor(Math.random()*3);let o=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),new THREE.MeshLambertMaterial({color:0x2f3542}));o.position.set(lanes[l],0.6,-55);scene.add(o);obstacles.push(o);}else{let l=Math.floor(Math.random()*3);let c=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.15,16),new THREE.MeshLambertMaterial({color:0xffde59}));c.rotation.x=Math.PI/2;c.position.set(lanes[l],0.9,-55);scene.add(c);coinsArr.push(c);}}
-let frame=0;function animate(){requestAnimationFrame(animate);if(!scene)return;if(playing){frame++;if(frame%28===0)spawn();speed=Math.min(0.45,0.22+score/4000);player.position.x+=(lanes[lane]-player.position.x)*0.18;if(isJumping){player.position.y+=vy;vy-=0.015;if(player.position.y<=0){player.position.y=0;isJumping=false;}}for(let i=obstacles.length-1;i>=0;i--){let o=obstacles[i];o.position.z+=speed*3;if(o.position.z>8){scene.remove(o);obstacles.splice(i,1);score+=10;}else if(Math.abs(o.position.z)<0.9&&Math.abs(o.position.x-player.position.x)<0.9&&player.position.y<0.9){lives--;scene.remove(o);obstacles.splice(i,1);if(lives<=0){playing=false;document.getElementById('gameOver').style.display='flex';document.getElementById('scoreBig').textContent='Score: '+Math.floor(score)+' | Coins: '+coinCount;}}}}for(let i=coinsArr.length-1;i>=0;i--){let c=coinsArr[i];c.position.z+=speed*3;if(c.position.z>8){scene.remove(c);coinsArr.splice(i,1);}else if(Math.abs(c.position.z)<0.9&&Math.abs(c.position.x-player.position.x)<0.9){coinCount++;score+=50;scene.remove(c);coinsArr.splice(i,1);}}score+=0.3;document.getElementById('score').textContent=Math.floor(score);document.getElementById('coins').textContent=coinCount;document.getElementById('lives').textContent=lives;}camera.position.x=player?player.position.x*0.5:0;camera.lookAt(player?player.position.x:0,1.5,-10);if(renderer)renderer.render(scene,camera);}
-function startGame(){score=0;coinCount=0;lives=3;lane=1;playing=true;obstacles.forEach(o=>scene.remove(o));obstacles=[];coinsArr.forEach(c=>scene.remove(c));coinsArr=[];if(player)player.position.set(0,0,0);document.getElementById('menu').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('hud').style.display='flex';document.getElementById('hint').style.display='block';}
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+// 100% OFFLINE GAME - KOI CDN NAHI, IS LIYE 0% PAR NAHI ATKEGA
+let bar=document.getElementById('bar'),txt=document.getElementById('loadText'),p=0;
+let timer=setInterval(()=>{
+  p+=10;
+  if(p>100) p=100;
+  bar.style.width=p+'%'; txt.textContent='Loading... '+p+'%';
+  if(p>=100){ clearInterval(timer); document.getElementById('loading').style.display='none'; document.getElementById('menu').style.display='flex'; }
+},100);
+
+let cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let playing=false,score=0,coinCount=0,playerY=0,vy=0,jumping=false,lane=1,obs=[],coins=[],frame=0;
+function resize(){cv.width=innerWidth;cv.height=innerHeight;} addEventListener('resize',resize); resize();
+function startGame(){
+  score=0;coinCount=0;lane=1;obs=[];coins=[];playing=true;
+  document.getElementById('menu').style.display='none';
+  document.getElementById('game').style.display='block';
+  document.getElementById('hud').style.display='flex';
+  loop();
+}
+function spawn(){
+  if(Math.random()<0.6) obs.push({x:cv.width,lane:Math.floor(Math.random()*3),w:50,h:50});
+  else coins.push({x:cv.width,lane:Math.floor(Math.random()*3)});
+}
+function loop(){
+  if(!playing) return;
+  requestAnimationFrame(loop);
+  frame++; if(frame%40===0) spawn();
+  ctx.fillStyle='#87ceeb'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(0,cv.height-100,cv.width,100);
+  ctx.fillStyle='#444'; ctx.fillRect(0,cv.height-120,cv.width,20);
+  let lanesX=[cv.width*0.25,cv.width*0.5,cv.width*0.75];
+  let px=lanesX[lane];
+  if(jumping){ playerY+=vy; vy+=1.2; if(playerY>=0){playerY=0;jumping=false;} }
+  // player
+  ctx.fillStyle='#ff4757'; ctx.fillRect(px-20,cv.height-140+playerY,40,50);
+  ctx.fillStyle='#ffd8a8'; ctx.fillRect(px-15,cv.height-170+playerY,30,30);
+  // obstacles
+  for(let i=obs.length-1;i>=0;i--){ let o=obs[i]; o.x-=7; ctx.fillStyle='#2f3542'; ctx.fillRect(o.x,cv.height-140,50,50);
+    if(Math.abs(o.x-px)<35 && playerY>-40){ alert('GAME OVER! Score: '+Math.floor(score)); playing=false; document.getElementById('game').style.display='none'; document.getElementById('hud').style.display='none'; document.getElementById('menu').style.display='flex'; return; }
+    if(o.x<-60){obs.splice(i,1); score+=10;}
+  }
+  for(let i=coins.length-1;i>=0;i--){ let c=coins[i]; c.x-=7; ctx.fillStyle='#ffde59'; ctx.beginPath(); ctx.arc(c.x,cv.height-110,15,0,7); ctx.fill();
+    if(Math.abs(c.x-px)<30){coinCount++; score+=50; coins.splice(i,1);}
+    if(c.x<-30) coins.splice(i,1);
+  }
+  score+=0.2;
+  document.getElementById('score').textContent=Math.floor(score);
+  document.getElementById('coins').textContent=coinCount;
+}
+let sx=0,sy=0;
+document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',e=>{if(!playing)return;let dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>Math.abs(dy)){if(dx>25&&lane<2)lane++;if(dx<-25&&lane>0)lane--;}else if(dy<-25&&!jumping){jumping=true;vy=-18;}}, {passive:true});
 </script>
 </body>
-  </html>
+</html>
