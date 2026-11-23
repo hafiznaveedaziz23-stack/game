@@ -1,0 +1,11 @@
+{
+  "name": "Running Rush 3D - Bali",
+  "short_name": "Running Rush 3D",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#00c6ff",
+  "theme_color": "#00c6ff",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
